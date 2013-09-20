@@ -68,10 +68,10 @@ class HiveUtils {
     FORMAT_TO_SERDE.put(Formats.PARQUET, "parquet.hive.serde.ParquetHiveSerDe");
 
     FORMAT_TO_INPUT_FORMAT.put(Formats.AVRO, "org.apache.hadoop.hive.ql.io.avro.AvroContainerInputFormat");
-    FORMAT_TO_INPUT_FORMAT.put(Formats.PARQUET, "parquet.hadoop.ParquetInputFormat");
+    FORMAT_TO_INPUT_FORMAT.put(Formats.PARQUET, "parquet.hive.DeprecatedParquetInputFormat");
 
     FORMAT_TO_OUTPUT_FORMAT.put(Formats.AVRO, "org.apache.hadoop.hive.ql.io.avro.AvroContainerOutputFormat");
-    FORMAT_TO_INPUT_FORMAT.put(Formats.PARQUET, "parquet.hadoop.ParquetOutputFormat");
+    FORMAT_TO_INPUT_FORMAT.put(Formats.PARQUET, "parquet.hive.DeprecatedParquetOutputFormat");
   }
 
   static DatasetDescriptor descriptorForTable(Configuration conf, Table table) {
