@@ -15,31 +15,28 @@
  */
 package com.cloudera.cdk.data.hbase;
 
+import com.cloudera.cdk.data.DatasetDescriptor;
 import com.cloudera.cdk.data.DatasetReader;
 import com.cloudera.cdk.data.DatasetWriter;
-import com.cloudera.cdk.data.FieldPartitioner;
-import com.cloudera.cdk.data.Marker;
 import com.cloudera.cdk.data.PartitionKey;
-import com.cloudera.cdk.data.PartitionStrategy;
 import com.cloudera.cdk.data.View;
+import com.cloudera.cdk.data.hbase.impl.Dao;
 import com.cloudera.cdk.data.spi.AbstractRangeView;
 import com.cloudera.cdk.data.spi.Key;
 import com.cloudera.cdk.data.spi.MarkerRange;
 
-import java.util.List;
-
 class DaoView<E> extends AbstractRangeView<E> {
 
-  private final DaoDataset<E> dataset;
+  private final Dao<E> dao;
 
-  DaoView(DaoDataset<E> dataset) {
-    super(dataset);
-    this.dataset = dataset;
+  DaoView(String dataset, DatasetDescriptor descriptor, Dao<E> dao) {
+    super(dataset, descriptor);
+    this.dao = dao;
   }
 
   private DaoView(DaoView<E> view, MarkerRange range) {
     super(view, range);
-    this.dataset = view.dataset;
+    this.dao = view.dao;
   }
 
   @Override
@@ -49,15 +46,15 @@ class DaoView<E> extends AbstractRangeView<E> {
 
   @Override
   public DatasetReader<E> newReader() {
-    return dataset.getDao().getScanner(toPartitionKey(range.getStart()),
+    return dao.getScanner(toPartitionKey(range.getStart()),
         range.getStart().isInclusive(), toPartitionKey(range.getEnd()),
         range.getEnd().isInclusive());
   }
 
   @Override
   public DatasetWriter<E> newWriter() {
-    final DatasetWriter<E> wrappedWriter = dataset.getDao().newBatch();
-    final Key partitionStratKey = new Key(dataset.getDescriptor().getPartitionStrategy());
+    final DatasetWriter<E> wrappedWriter = dao.newBatch();
+    final Key partitionStratKey = new Key(descriptor.getPartitionStrategy());
     // Return a dataset writer that checks on write that an entity is within the
     // range of the view
     return new DatasetWriter<E>() {
@@ -106,7 +103,7 @@ class DaoView<E> extends AbstractRangeView<E> {
       return null;
     }
 
-    return DaoDataset.keyFor(dataset.getDescriptor().getPartitionStrategy(),
+    return DaoDataset.keyFor(descriptor.getPartitionStrategy(),
         boundary.getBound());
   }
 }

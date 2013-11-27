@@ -16,6 +16,7 @@
 
 package com.cloudera.cdk.data.filesystem;
 
+import com.cloudera.cdk.data.DatasetDescriptor;
 import com.cloudera.cdk.data.DatasetException;
 import com.cloudera.cdk.data.DatasetIOException;
 import com.cloudera.cdk.data.DatasetReader;
@@ -25,7 +26,6 @@ import com.cloudera.cdk.data.spi.AbstractRangeView;
 import com.cloudera.cdk.data.spi.Key;
 import com.cloudera.cdk.data.spi.MarkerRange;
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.hadoop.fs.FileStatus;
@@ -46,16 +46,25 @@ class FileSystemView<E> extends AbstractRangeView<E> {
   private final FileSystem fs;
   private final Path root;
 
-  FileSystemView(FileSystemDataset<E> dataset) {
-    super(dataset);
-    this.fs = dataset.getFileSystem();
-    this.root = dataset.getDirectory();
+  FileSystemView(
+      String dataset, DatasetDescriptor descriptor, FileSystem fs, Path root) {
+    super(dataset, descriptor);
+    this.fs = fs;
+    this.root = root;
   }
 
   private FileSystemView(FileSystemView<E> view, MarkerRange range) {
     super(view, range);
     this.fs = view.fs;
     this.root = view.root;
+  }
+
+  FileSystem getFileSystem() {
+    return fs;
+  }
+
+  Path getRootDirectory() {
+    return root;
   }
 
   @Override
@@ -65,16 +74,15 @@ class FileSystemView<E> extends AbstractRangeView<E> {
 
   @Override
   public DatasetReader<E> newReader() {
-    return new MultiFileDatasetReader<E>(
-        fs, pathIterator(), dataset.getDescriptor());
+    return new MultiFileDatasetReader<E>(fs, pathIterator(), descriptor);
   }
 
   @Override
   public DatasetWriter<E> newWriter() {
-    if (dataset.getDescriptor().isPartitioned()) {
+    if (descriptor.isPartitioned()) {
       return new PartitionedDatasetWriter<E>(this);
     } else {
-      return FileSystemWriters.newFileWriter(fs, root, dataset.getDescriptor());
+      return FileSystemWriters.newFileWriter(fs, root, descriptor);
     }
   }
 
@@ -91,7 +99,7 @@ class FileSystemView<E> extends AbstractRangeView<E> {
   @Override
   @SuppressWarnings("unchecked")
   public Iterable<View<E>> getCoveringPartitions() {
-    if (dataset.getDescriptor().isPartitioned()) {
+    if (descriptor.isPartitioned()) {
       return Iterables.transform(
           partitionIterator(),
           new Function<Key, View<E>>() {
@@ -99,7 +107,7 @@ class FileSystemView<E> extends AbstractRangeView<E> {
             public View<E> apply(Key key) {
               if (key != null) {
                 // no need for the bounds checks, use dataset.in
-                return dataset.of(key);
+                return of(key);
               } else {
                 throw new DatasetException("[BUG] Null partition");
               }
@@ -112,7 +120,7 @@ class FileSystemView<E> extends AbstractRangeView<E> {
 
   PathIterator pathIterator() {
     final Iterable<Path> directories;
-    if (dataset.getDescriptor().isPartitioned()) {
+    if (descriptor.isPartitioned()) {
       directories = Iterables.transform(
           partitionIterator(),
           new Function<Key, Path>() {
@@ -135,8 +143,7 @@ class FileSystemView<E> extends AbstractRangeView<E> {
   private FileSystemPartitionIterator partitionIterator() {
     try {
       return new FileSystemPartitionIterator(
-          fs, root,
-          dataset.getDescriptor().getPartitionStrategy(), range);
+          fs, root, descriptor.getPartitionStrategy(), range);
     } catch (IOException ex) {
       throw new DatasetException("Cannot list partitions in view:" + this, ex);
     }

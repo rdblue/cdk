@@ -48,7 +48,7 @@ class DaoDataset<E> extends AbstractDataset<E> implements RandomAccessDataset<E>
     this.name = name;
     this.dao = dao;
     this.descriptor = descriptor;
-    this.unbounded = new DaoView<E>(this);
+    this.unbounded = new DaoView<E>(name, descriptor, dao);
   }
 
   Dao<E> getDao() {

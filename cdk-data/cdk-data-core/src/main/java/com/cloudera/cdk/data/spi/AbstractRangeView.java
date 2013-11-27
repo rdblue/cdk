@@ -16,7 +16,6 @@
 
 package com.cloudera.cdk.data.spi;
 
-import com.cloudera.cdk.data.Dataset;
 import com.cloudera.cdk.data.DatasetDescriptor;
 import com.cloudera.cdk.data.Marker;
 import com.cloudera.cdk.data.View;
@@ -27,15 +26,18 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 public abstract class AbstractRangeView<E> implements View<E> {
 
-  protected final Dataset<E> dataset;
+  // this isn't strictly necessary, but it is good for logs and exceptions
+  protected final String datasetName;
+  protected final DatasetDescriptor descriptor;
   protected final MarkerRange range;
 
   // This class is Immutable and must be thread-safe
   protected final ThreadLocal<Key> keys;
 
-  protected AbstractRangeView(Dataset<E> dataset) {
-    this.dataset = dataset;
-    final DatasetDescriptor descriptor = dataset.getDescriptor();
+  protected AbstractRangeView(
+      final String datasetName, final DatasetDescriptor descriptor) {
+    this.datasetName = datasetName;
+    this.descriptor = descriptor;
     if (descriptor.isPartitioned()) {
       this.range = new MarkerRange(new MarkerComparator(
           descriptor.getPartitionStrategy()));
@@ -53,7 +55,8 @@ public abstract class AbstractRangeView<E> implements View<E> {
   }
 
   protected AbstractRangeView(AbstractRangeView<E> view, MarkerRange range) {
-    this.dataset = view.dataset;
+    this.datasetName = view.datasetName;
+    this.descriptor = view.descriptor;
     this.range = range;
     // thread-safe, so okay to reuse when views share a partition strategy
     this.keys = view.keys;
@@ -62,8 +65,8 @@ public abstract class AbstractRangeView<E> implements View<E> {
   protected abstract AbstractRangeView<E> newLimitedCopy(MarkerRange subRange);
 
   @Override
-  public Dataset<E> getDataset() {
-    return dataset;
+  public DatasetDescriptor getDescriptor() {
+    return descriptor;
   }
 
   @Override
@@ -74,7 +77,7 @@ public abstract class AbstractRangeView<E> implements View<E> {
 
   @Override
   public boolean contains(E entity) {
-    if (dataset.getDescriptor().isPartitioned()) {
+    if (descriptor.isPartitioned()) {
       return range.contains(keys.get().reuseFor(entity));
     } else {
       return true;
@@ -122,19 +125,20 @@ public abstract class AbstractRangeView<E> implements View<E> {
     }
 
     AbstractRangeView that = (AbstractRangeView) o;
-    return (Objects.equal(this.dataset, that.dataset) &&
+    return (Objects.equal(this.descriptor, that.descriptor) &&
         Objects.equal(this.range, that.range));
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(getClass(), dataset, range);
+    return Objects.hashCode(getClass(), descriptor, range);
   }
 
   @Override
   public String toString() {
     return Objects.toStringHelper(this)
-        .add("dataset", dataset)
+        .add("dataset", datasetName)
+        .add("descriptor", descriptor)
         .add("range", range)
         .toString();
   }

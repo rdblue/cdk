@@ -17,6 +17,7 @@
 package com.cloudera.cdk.data.spi;
 
 import com.cloudera.cdk.data.Dataset;
+import com.cloudera.cdk.data.DatasetDescriptor;
 import com.cloudera.cdk.data.DatasetReader;
 import com.cloudera.cdk.data.DatasetWriter;
 import com.cloudera.cdk.data.Marker;
@@ -24,11 +25,6 @@ import com.cloudera.cdk.data.View;
 import com.google.common.base.Preconditions;
 
 public abstract class AbstractDataset<E> implements Dataset<E> {
-
-  @Override
-  public Dataset<E> getDataset() {
-    return this;
-  }
 
   @Override
   public boolean deleteAll() {

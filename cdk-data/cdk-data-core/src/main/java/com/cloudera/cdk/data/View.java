@@ -32,11 +32,13 @@ import javax.annotation.concurrent.Immutable;
 public interface View<E> {
 
   /**
-   * Returns the underlying {@link Dataset} that this is a {@code View} of.
+   * Returns the {@link DatasetDescriptor} that describes the underlying
+   * {@link Dataset}, of which this is a {@code View}.
    *
-   * @return the underlying {@code Dataset}
+   * @return the {@code DatasetDescriptor} that describes the underlying
+   *          {@code Dataset}
    */
-  Dataset<E> getDataset();
+  DatasetDescriptor getDescriptor();
 
   /**
    * Deletes the data in this {@link View} or throws an {@code Exception}.

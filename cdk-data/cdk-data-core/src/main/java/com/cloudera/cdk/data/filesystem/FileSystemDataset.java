@@ -70,7 +70,9 @@ class FileSystemDataset<E> extends AbstractDataset<E> {
         descriptor.isPartitioned() ? descriptor.getPartitionStrategy() : null;
     this.convert = new PathConversion();
 
-    this.unbounded = new FileSystemView<E>(this);
+    this.unbounded = new FileSystemView<E>(
+        name, descriptor, fileSystem, directory);
+
     // remove this.partitionKey for 0.10.0
     this.partitionKey = null;
   }

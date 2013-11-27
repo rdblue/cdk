@@ -30,6 +30,7 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.util.concurrent.UncheckedExecutionException;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,9 +54,9 @@ class PartitionedDatasetWriter<E> implements DatasetWriter<E> {
   private ReaderWriterState state;
 
   public PartitionedDatasetWriter(View<E> view) {
-    final DatasetDescriptor descriptor = view.getDataset().getDescriptor();
+    final DatasetDescriptor descriptor = view.getDescriptor();
     Preconditions.checkArgument(descriptor.isPartitioned(),
-        "Dataset " + view.getDataset() + " is not partitioned");
+        "View " + view + " is not partitioned");
 
     this.view = view;
     this.partitionStrategy = descriptor.getPartitionStrategy();
@@ -170,14 +171,21 @@ class PartitionedDatasetWriter<E> implements DatasetWriter<E> {
     public DatasetWriter<E> load(Key key) throws Exception {
       Preconditions.checkArgument(view.contains(key),
           "View {} does not contain Key {}", view, key);
-      Preconditions.checkState(view.getDataset() instanceof FileSystemDataset,
-          "FileSystemWriters cannot create writer for " + view.getDataset());
+      Preconditions.checkState(
+          view instanceof FileSystemView || view instanceof FileSystemDataset,
+          "FileSystemWriters cannot create writer for " + view);
 
-      final FileSystemDataset dataset = (FileSystemDataset) view.getDataset();
-      final DatasetWriter<E> writer = FileSystemWriters.newFileWriter(
-          dataset.getFileSystem(),
-          new Path(dataset.getDirectory(), convert.fromKey(key)),
-          dataset.getDescriptor());
+  final FileSystem fs;
+  final Path root;
+  if (view instanceof FileSystemView) {
+    fs = ((FileSystemView) view).getFileSystem();
+    root = ((FileSystemView) view).getRootDirectory();
+  } else {
+    fs = ((FileSystemDataset) view).getFileSystem();
+    root = ((FileSystemDataset) view).getDirectory();
+  }
+  final DatasetWriter<E> writer = FileSystemWriters.newFileWriter(
+      fs, new Path(root, convert.fromKey(key)), view.getDescriptor());
 
       writer.open();
 
